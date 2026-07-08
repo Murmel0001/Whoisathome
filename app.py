@@ -1,4 +1,3 @@
-import json
 import os
 import threading
 from threading import Lock
@@ -9,55 +8,29 @@ from fastapi.responses import PlainTextResponse
 
 
 # -------------------------------------------------
-# Konfiguration über Umgebungsvariablen
+# Konfiguration
 # -------------------------------------------------
 
 PERSONS_ENV = os.getenv("PERSONS", "person1,person2,person3,person4,person5")
+
 ALLOWED_PERSONS = {
     person.strip()
     for person in PERSONS_ENV.split(",")
     if person.strip()
 }
 
-STATE_FILE = os.getenv("STATE_FILE", "/data/home_state.json")
-
 lock = Lock()
 
-
-# -------------------------------------------------
-# Zustand laden/speichern
-# -------------------------------------------------
-
-def load_state():
-    if not os.path.exists(STATE_FILE):
-        return {person: False for person in ALLOWED_PERSONS}
-
-    try:
-        with open(STATE_FILE, "r", encoding="utf-8") as file:
-            data = json.load(file)
-    except Exception:
-        data = {}
-
-    state = {}
-
-    for person in ALLOWED_PERSONS:
-        state[person] = bool(data.get(person, False))
-
-    return state
-
-
-def save_state():
-    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-
-    with open(STATE_FILE, "w", encoding="utf-8") as file:
-        json.dump(home_state, file, indent=2)
-
-
-home_state = load_state()
+# Flüchtiger Zustand nur im RAM.
+# Nach Neustart des Containers ist alles wieder false.
+home_state = {
+    person: False
+    for person in ALLOWED_PERSONS
+}
 
 
 # -------------------------------------------------
-# API 1: Setzen
+# API 1: Status setzen
 # Port 8000
 # -------------------------------------------------
 
@@ -69,29 +42,38 @@ set_app = FastAPI(
 
 
 @set_app.get("/whoisathome/{person}/{value}", response_class=PlainTextResponse)
-def set_person_status_clean(person: str, value: str, request: Request):
+def set_person_status(person: str, value: str, request: Request):
     """
-    Beispiel:
+    Beispiele:
+
     /whoisathome/person1/true
     /whoisathome/person1/false
     """
 
     # Keine Query-Parameter erlauben.
-    # Also z. B. ?x=123 wird abgelehnt.
+    # Also z. B. ?abc=123 wird abgelehnt.
     if request.query_params:
-        raise HTTPException(status_code=400, detail="Query parameters are not allowed")
+        raise HTTPException(
+            status_code=400,
+            detail="Query parameters are not allowed"
+        )
 
     if person not in ALLOWED_PERSONS:
-        raise HTTPException(status_code=404, detail="Unknown person")
+        raise HTTPException(
+            status_code=404,
+            detail="Unknown person"
+        )
 
     value = value.lower()
 
     if value not in ["true", "false"]:
-        raise HTTPException(status_code=400, detail="Value must be true or false")
+        raise HTTPException(
+            status_code=400,
+            detail="Value must be true or false"
+        )
 
     with lock:
         home_state[person] = value == "true"
-        save_state()
 
     return "ok"
 
@@ -100,36 +82,47 @@ def set_person_status_clean(person: str, value: str, request: Request):
 def set_person_status_assignment(assignment: str, request: Request):
     """
     Alternative Schreibweise:
+
     /whoisathome/person1=true
     /whoisathome/person1=false
     """
 
-    # Keine Query-Parameter erlauben.
     if request.query_params:
-        raise HTTPException(status_code=400, detail="Query parameters are not allowed")
+        raise HTTPException(
+            status_code=400,
+            detail="Query parameters are not allowed"
+        )
 
     if "=" not in assignment:
-        raise HTTPException(status_code=400, detail="Invalid format")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid format"
+        )
 
     person, value = assignment.split("=", 1)
 
     if person not in ALLOWED_PERSONS:
-        raise HTTPException(status_code=404, detail="Unknown person")
+        raise HTTPException(
+            status_code=404,
+            detail="Unknown person"
+        )
 
     value = value.lower()
 
     if value not in ["true", "false"]:
-        raise HTTPException(status_code=400, detail="Value must be true or false")
+        raise HTTPException(
+            status_code=400,
+            detail="Value must be true or false"
+        )
 
     with lock:
         home_state[person] = value == "true"
-        save_state()
 
     return "ok"
 
 
 # -------------------------------------------------
-# API 2: Abfragen
+# API 2: Status abfragen
 # Port 8001
 # -------------------------------------------------
 
@@ -144,19 +137,29 @@ status_app = FastAPI(
 def get_person_status(person: str, request: Request):
     """
     Beispiel:
+
     /status/person1
 
     Antwort:
+
     true
-    oder
+
+    oder:
+
     false
     """
 
     if request.query_params:
-        raise HTTPException(status_code=400, detail="Query parameters are not allowed")
+        raise HTTPException(
+            status_code=400,
+            detail="Query parameters are not allowed"
+        )
 
     if person not in ALLOWED_PERSONS:
-        raise HTTPException(status_code=404, detail="Unknown person")
+        raise HTTPException(
+            status_code=404,
+            detail="Unknown person"
+        )
 
     with lock:
         value = home_state[person]
@@ -168,15 +171,20 @@ def get_person_status(person: str, request: Request):
 def get_all_status(request: Request):
     """
     Optional:
+
     /status
 
     Antwort z. B.:
+
     person1=true
     person2=false
     """
 
     if request.query_params:
-        raise HTTPException(status_code=400, detail="Query parameters are not allowed")
+        raise HTTPException(
+            status_code=400,
+            detail="Query parameters are not allowed"
+        )
 
     with lock:
         lines = [
@@ -196,7 +204,8 @@ def run_set_api():
         set_app,
         host="0.0.0.0",
         port=8000,
-        log_level="info"
+        log_level="warning",
+        access_log=False
     )
 
 
@@ -205,7 +214,8 @@ def run_status_api():
         status_app,
         host="0.0.0.0",
         port=8001,
-        log_level="info"
+        log_level="warning",
+        access_log=False
     )
 
 

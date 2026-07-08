@@ -6,10 +6,11 @@ services:
 
     environment:
       PERSONS: "person1,person2,person3,person4,person5"
-      STATE_FILE: "/data/home_state.json"
 
-    volumes:
-      - ./data:/data
+    # Keine Docker-Logs speichern.
+    # Dadurch landen aufgerufene URLs nicht in den Container-Logs.
+    logging:
+      driver: "none"
     networks:
       privateNetwork:
         ipv4_address: 10.11.1.11
