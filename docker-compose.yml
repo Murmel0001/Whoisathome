@@ -1,0 +1,23 @@
+services:
+  whoisathome:
+    build: .
+    container_name: whoisathome-api
+    restart: unless-stopped
+
+    environment:
+      PERSONS: "person1,person2,person3,person4,person5"
+      STATE_FILE: "/data/home_state.json"
+
+    volumes:
+      - ./data:/data
+    networks:
+      privateNetwork:
+        ipv4_address: 10.11.1.11
+      MyNetwork:
+        ipv4_address: 172.20.0.98
+
+networks:
+  MyNetwork:
+    external: true
+  privateNetwork:
+    external: true
