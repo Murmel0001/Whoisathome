@@ -13,7 +13,7 @@ services:
       driver: "none"
     networks:
       privateNetwork:
-        ipv4_address: 10.11.1.20
+        ipv4_address: 10.11.1.30
       MyNetwork:
         ipv4_address: 172.20.0.90
 
