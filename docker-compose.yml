@@ -12,13 +12,13 @@ services:
     logging:
       driver: "none"
     networks:
-      privateNetwork:
-        ipv4_address: 10.11.1.30
-      MyNetwork:
-        ipv4_address: 172.20.0.90
+      PrivateNetwork:
+        ipv4_address: 10.20.2.16
+      OpenNetwork:
+        ipv4_address: 10.20.1.16
 
 networks:
-  MyNetwork:
+  OpenNetwork:
     external: true
-  privateNetwork:
+  PrivateNetwork:
     external: true
