@@ -12,6 +12,7 @@ services:
     logging:
       driver: "none"
     networks:
+<<<<<<< HEAD
       PrivateNetwork:
         ipv4_address: 10.20.2.16
       OpenNetwork:
@@ -21,4 +22,11 @@ networks:
   OpenNetwork:
     external: true
   PrivateNetwork:
+=======
+      OpenNetwork:
+        ipv4_address: 10.11.1.30
+
+networks:
+  OpenNetwork:
+>>>>>>> 76f3b24 (w)
     external: true
